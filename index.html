@@ -467,7 +467,7 @@ a{color:var(--acc)}
 </section>
 
 <section id="s-alert">
-  <div class="stat">列出使用率達警示門檻或已超出合約數量的品項，可一鍵寄信通知採購人員。</div>
+  <div class="stat">列出使用率達警示門檻或已超出合約數量的品項；超量的部分請辦理請購單。</div>
   <div id="alertBody"></div>
 </section>
 
@@ -482,7 +482,7 @@ a{color:var(--acc)}
   <ol class="muted">
     <li>「叫料下單」搜尋或篩選品項，按 ＋ 加入叫料單。</li>
     <li>到「叫料單」填本次數量、需求日期、位置後送出。系統會即時計算下單後累計數量。</li>
-    <li>下單後累計超過合約數量時<b>不可下單</b>：系統跳出警示，請自行填寫請購單辦理超出部分，並通知主管（可一鍵寄信）；叫料單內的數量須改在剩餘數量內才能送出。</li>
+    <li>下單後累計超過合約數量時<b>不可下單</b>：系統跳出警示，請自行填寫請購單辦理超出部分，並通知主管；叫料單內的數量須改在剩餘數量內才能送出。</li>
     <li>「合約總覽」看各合約叫料進度；「超量警示」列出已達門檻或超量的品項。</li>
   </ol>
   <div class="stat" id="dataInfo"></div>
@@ -499,7 +499,7 @@ a{color:var(--acc)}
 /* 機電工程採購 設定檔
  * apiUrl     ：Google Apps Script 後端網址（…/exec）。帳號（使用者工作表）與叫料紀錄都在這個後端的 Google 試算表。
  * warnRatio  ：累計叫料達合約數量的幾成時顯示「接近上限」（0.8 = 80%）。
- * notify     ：「超量警示」頁「Email 通知採購」的收件人。'*' = 該專案所有廠商；也可用廠商名稱個別指定。
+ * notify     ：（已停用）原「超量警示」寄信收件人，保留欄位不影響使用。
  * companyName：進料申請單抬頭。
  * deliver    ：進料申請單「交貨地點」預設值（各專案）；使用者改過後會記在自己的裝置。
  */
@@ -1154,13 +1154,13 @@ function renderAlert() {
   $('#alertCnt').hidden = !its.some(i => aSt(i).k === 'bad'); $('#alertCnt').textContent = its.filter(i => aSt(i).k === 'bad').length;
   if (!its.length) { $('#alertBody').innerHTML = '<div class="note ok">目前沒有接近上限或超量的品項。</div>'; return; }
   const byV = {}; its.forEach(i => (byV[i.vendor] = byV[i.vendor] || []).push(i));
-  $('#alertBody').innerHTML = Object.keys(byV).map(v => {
-    const list = byV[v].sort((a, b) => aSt(b).r - aSt(a).r);
-    const to = buyersFor(v).join(',');
-    const body = `${DATA[S.proj].name}｜${v} 合約數量警示\n\n` + list.map(i => { const st = aSt(i); return `・${i.cno} ${i.name}${i.spec ? ' ' + i.spec : ''}：已叫 ${st.tot} / 合約 ${i.qty} ${i.unit}（${Math.round(st.r * 100)}%）${st.k === 'bad' ? '【超量】' : ''}`; }).join('\n');
-    const href = 'mailto:' + encodeURIComponent(to).replace(/%2C/g, ',') + '?subject=' + encodeURIComponent(`【叫料警示】${DATA[S.proj].name} ${v}`) + '&body=' + encodeURIComponent(body);
-    return `<h3>${esc(v)} <a class="btn sm" href="${href}">Email 通知採購</a></h3><div class="tw"><table><thead><tr><th>合約</th><th>品名</th><th>單位</th><th class="n">合約數量</th><th class="n">已叫累計</th><th>使用率</th><th>狀態</th></tr></thead><tbody>` +
-      list.map(i => { const st = aSt(i); return `<tr class="${st.k === 'bad' ? 'over' : 'warn'}"><td class="nw d">${esc(i.cno)}</td><td class="nm">${esc(i.name)}${i.spec ? ` <span class="tag">${esc(i.spec)}</span>` : ''}</td><td>${esc(i.unit)}</td><td class="n">${fmt(i.qty)}</td><td class="n">${fmt(st.tot)}</td><td class="nw">${bar(st)}</td><td>${label(st.k)}</td></tr>`; }).join('') + '</tbody></table></div>';
+  const nBad = its.filter(i => aSt(i).k === 'bad').length;
+  // 不再寄信通知採購：超量的品項只提醒「請辦理請購單」
+  $('#alertBody').innerHTML = `<div class="note ${nBad ? 'bad' : ''}">${nBad ? `<b>有 ${nBad} 項已超出合約，請辦理請購單。</b>超出合約的數量不能再叫料，請自行填寫請購單辦理，並通知主管。` : '<b>目前沒有超量的品項。</b>'}${its.length - nBad ? `<br>另有 ${its.length - nBad} 項接近合約上限，請留意剩餘數量，必要時提早辦理請購單。` : ''}</div>` +
+    Object.keys(byV).map(v => {
+    const list = byV[v].sort((a, b) => aSt(b).r - aSt(a).r), vBad = list.filter(i => aSt(i).k === 'bad').length;
+    return `<h3>${esc(v)}${vBad ? ` <span class="tag bad">請辦理請購單（${vBad} 項超量）</span>` : ''}</h3><div class="tw"><table><thead><tr><th>合約</th><th>品名</th><th>單位</th><th class="n">合約數量</th><th class="n">已叫累計</th><th>使用率</th><th>狀態</th></tr></thead><tbody>` +
+      list.map(i => { const st = aSt(i); return `<tr class="${st.k === 'bad' ? 'over' : 'warn'}"><td class="nw d">${esc(i.cno)}</td><td class="nm">${esc(i.name)}${i.spec ? ` <span class="tag">${esc(i.spec)}</span>` : ''}</td><td>${esc(i.unit)}</td><td class="n">${fmt(i.qty)}</td><td class="n">${fmt(st.tot)}</td><td class="nw">${bar(st)}</td><td>${st.k === 'bad' ? '<span class="tag bad">超量</span><div class="d" style="color:var(--bad)">請辦理請購單</div>' : label(st.k)}</td></tr>`; }).join('') + '</tbody></table></div>';
   }).join('');
 }
 
@@ -1413,8 +1413,8 @@ $('#recvDrop').addEventListener('drop', e => importSlips(e.dataTransfer.files));
 
 /* ---------- help / settings ---------- */
 function renderHelp() {
-  $('#helpMode').innerHTML = apiUrl() ? `<div class="note ok">雲端模式：連線到 Google 試算表，帳號、下單紀錄與累計數量多人共用；超量時由 Google 自動寄信通知採購。</div>` :
-    `<div class="note">本機模式：下單紀錄只存在這台電腦的瀏覽器（換電腦或清除瀏覽資料就看不到）。要多人共用與自動寄信，請依「使用說明」部署 Google Apps Script 後填入網址。</div>`;
+  $('#helpMode').innerHTML = apiUrl() ? `<div class="note ok">雲端模式：連線到 Google 試算表，帳號、下單紀錄與累計數量多人共用。</div>` :
+    `<div class="note">本機模式：下單紀錄只存在這台電腦的瀏覽器（換電腦或清除瀏覽資料就看不到）。要多人共用，請依「使用說明」部署 Google Apps Script 後填入網址。</div>`;
   const P = DATA[S.proj];
   $('#dataInfo').textContent = `資料來源：${P.name} 合約用印掃描檔與核決表；資料整理日期 ${P.built || ''}。共 ${P.contracts.length} 份已用印合約、${P.items.length} 項可叫料明細。`;
 }
