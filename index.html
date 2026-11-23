@@ -1150,7 +1150,7 @@ function renderAlert() {
   }).join('');
 }
 
-/* ---------- 到貨登記（手動＋匯入出貨單 PDF／照片自動核對） ---------- */
+/* ---------- 到貨登記（手動輸入本次到貨數量） ---------- */
 // 每個叫料項目的到貨狀態：recv＝已到貨數量；qty＝申請數量（0 表示已刪除，不列入）
 const recvOf = l => Number(l.recv) || 0;
 const rState = l => { const q = Number(l.qty) || 0, r = recvOf(l); return q <= 0 ? 'del' : r <= 0 ? 'none' : r + 1e-9 < q ? 'part' : 'full'; };
@@ -1208,7 +1208,7 @@ $('#recvClear').onclick = () => { S.recvQ = {}; $('#recvOcr').textContent = ''; 
 $('#recvSave').onclick = async () => {
   const cands = recvCandidates(true), byKey = {}; cands.forEach(c => byKey[c.key] = c);
   const ents = Object.keys(S.recvQ).filter(k => Number(S.recvQ[k]) && byKey[k]).map(k => ({ no: byKey[k].o.no, id: byKey[k].l.id, add: Number(S.recvQ[k]), c: byKey[k] }));
-  if (!ents.length) { alert('請先在「本次到貨」輸入數量，或匯入出貨單。'); return; }
+  if (!ents.length) { alert('請先在「本次到貨」輸入數量，或按「到齊」。'); return; }
   const over = ents.filter(x => recvOf(x.c.l) + x.add > Number(x.c.l.qty) + 1e-9);
   const neg = ents.filter(x => recvOf(x.c.l) + x.add < 0);
   if (neg.length) { alert('到貨數量不可小於 0：' + neg.map(x => x.c.l.name).join('、')); return; }
