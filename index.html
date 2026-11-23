@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>機電工程材料下單控管流程</title>
+<title>機電工程材料控管</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6feb'/%3E%3Cpath d='M14 22h36l-4 26H18z' fill='%23fff'/%3E%3Cpath d='M24 22c0-6 4-10 8-10s8 4 8 10' stroke='%23fff' stroke-width='4' fill='none'/%3E%3Cpath d='M25 35l5 5 10-11' stroke='%231f6feb' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root{color-scheme:dark;--bg:#050b18;--card:#0b1629;--ink:#e6f1ff;--sub:#8ba3c7;--line:#1c2f4d;--acc:#22d3ee;--acc2:#3b82f6;--accs:#0e2a42;--best:#0c2b25;--bestink:#34d399;--warn:#fbbf24;--warnbg:#2b2210;--bad:#f87171;--badbg:#341418;--glow:rgba(34,211,238,.35)}
@@ -179,7 +179,7 @@ tr.sec td{background:var(--bg);color:var(--sub);font-size:13px;font-weight:600}
 .lg-brand{display:flex;gap:16px;align-items:center}
 .lg-brand .logo{width:62px;height:62px;border-radius:16px;box-shadow:0 0 0 1px rgba(56,189,248,.45),0 0 28px rgba(34,211,238,.35)}
 .lg-co{font-size:13px;color:var(--n-sub);letter-spacing:.08em}
-.lg-hero h1{margin:4px 0 0;font-size:31px;letter-spacing:.06em;white-space:nowrap;line-height:1.2;background:linear-gradient(90deg,#fff 0%,#a5f3fc 55%,#93c5fd 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(34,211,238,.25)}
+.lg-hero h1{margin:4px 0 0;font-size:34px;letter-spacing:.1em;white-space:nowrap;line-height:1.2;background:linear-gradient(90deg,#fff 0%,#a5f3fc 55%,#93c5fd 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(34,211,238,.25)}
 .lg-en{font:600 12px/1 ui-monospace,Consolas,monospace;letter-spacing:.32em;color:var(--n-sub);margin-top:8px}
 .lg-lead{font-size:15px;line-height:1.85;color:#c3d4ee;max-width:30em;margin:0}
 .lg-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -343,7 +343,7 @@ a{color:var(--acc)}
   <div class="lg-wrap">
     <aside class="lg-hero">
       <div class="lg-chip"><i></i>SYSTEM ONLINE ・ MEP MATERIAL CONTROL</div>
-      <div class="lg-brand"><img class="logo" alt="" id="logoL"><div><div class="lg-co">久舜營造股份有限公司・機電營運處</div><h1>機電工程材料下單控管流程</h1><div class="lg-en">MEP MATERIAL ORDER CONTROL</div></div></div>
+      <div class="lg-brand"><img class="logo" alt="" id="logoL"><div><div class="lg-co">久舜營造股份有限公司・機電營運處</div><h1>機電工程材料控管</h1><div class="lg-en">MEP MATERIAL ORDER CONTROL</div></div></div>
       <p class="lg-lead">依用印合約叫料，數量與金額即時累計；超出合約自動攔截，進料申請單一鍵產生。</p>
       <div class="lg-stats" id="lgStats"></div>
       <ul class="lg-feat">
@@ -375,7 +375,7 @@ a{color:var(--acc)}
 
 <div id="appView" hidden>
 <header>
-  <div class="brand"><img class="logo" alt="" id="logoA"><div><h1>機電工程材料下單控管流程</h1><div class="sub" id="projSub"></div></div>
+  <div class="brand"><img class="logo" alt="" id="logoA"><div><h1>機電工程材料控管</h1><div class="sub" id="projSub"></div></div>
     <div class="who"><div id="whoName"></div><button class="btn sm" id="logoutBtn">登出／切換專案</button></div></div>
   <div class="ctl"><input type="text" id="q" placeholder="搜尋：品名、規格、廠商、合約編號…"></div>
 </header>
@@ -482,7 +482,7 @@ a{color:var(--acc)}
 <!-- 設定：同資料夾若有 config.js 會優先使用；沒有時使用下方內建預設值 -->
 <script src="config.js"></script>
 <script>/*CFG-DEFAULT-START*/
-/* 機電工程材料下單控管流程 設定檔
+/* 機電工程材料控管 設定檔
  * apiUrl     ：Google Apps Script 後端網址（…/exec）。帳號（使用者工作表）與叫料紀錄都在這個後端的 Google 試算表。
  * warnRatio  ：累計叫料達合約數量的幾成時顯示「接近上限」（0.8 = 80%）。
  * notify     ：（已停用）原「超量警示」寄信收件人，保留欄位不影響使用。
