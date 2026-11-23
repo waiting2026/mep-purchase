@@ -129,15 +129,8 @@ tr.grp.tog:hover td{filter:brightness(.97)}
 tr.grp .car{display:inline-block;width:22px;color:var(--acc)}
 tr.grp .gbar{float:right;font-weight:400;font-size:12px}
 /* 到貨登記 */
-.rimp{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border:1.5px dashed rgba(34,211,238,.55);border-radius:12px;padding:14px 16px;margin-bottom:8px;background:rgba(34,211,238,.05);transition:background .15s,border-color .15s}
-.rimp.drag{background:rgba(34,211,238,.14);border-color:var(--acc)}
-.rimp-l{flex:1;min-width:240px}
-.rimp label.btn{padding:7px 16px;cursor:pointer}
-.mtag{display:inline-block;font-size:11px;border-radius:4px;padding:0 5px;margin-left:4px}
-.mtag.hi{background:rgba(52,211,153,.15);color:#34d399}.mtag.mid{background:rgba(251,191,36,.15);color:#fbbf24}.mtag.lo{background:rgba(248,113,113,.15);color:#f87171}
 tr.rhit td{background:rgba(34,211,238,.07)}
 td input.rq{width:84px;text-align:center}
-.rawtxt{white-space:pre-wrap;font-size:12px;color:var(--sub);background:rgba(2,8,23,.6);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:260px;overflow:auto}
 .rstat{font-size:11px;border-radius:4px;padding:0 5px;border:1px solid}
 .rstat.none{color:var(--sub);border-color:#2b4468}.rstat.part{color:var(--warn);border-color:var(--warn)}.rstat.full{color:var(--bestink);border-color:var(--bestink)}
 /* 叫料紀錄：一張叫料單一列，點開看細項 */
@@ -437,11 +430,7 @@ a{color:var(--acc)}
 </section>
 
 <section id="s-recv">
-  <div class="rimp" id="recvDrop">
-    <div class="rimp-l"><b>📄 匯入出貨單</b><div class="d">PDF 或照片（可一次多張、手機可直接拍照）。系統會讀出品名與數量，自動對到下方未到貨的叫料項目，確認後再登記。辨識在這台裝置上進行，出貨單不會上傳。</div></div>
-    <label class="btn p" for="recvFile">選擇檔案／拍照</label>
-    <input type="file" id="recvFile" accept="application/pdf,image/*" multiple hidden>
-  </div>
+  <div class="stat">工地收到貨後，在「本次到貨」輸入數量（或按「到齊」），填好到貨日期與出貨單號後按「登記到貨」。</div>
   <div class="stat" id="recvOcr"></div>
   <div class="row">
     <label>廠商 <select id="recvVendor"></select></label>
@@ -453,11 +442,8 @@ a{color:var(--acc)}
     <button class="btn" id="recvClear">清除本次數量</button>
   </div>
   <div class="stat" id="recvStat"></div>
-  <div class="tw"><table><thead><tr><th>叫料單</th><th>廠商・品名</th><th class="n">申請</th><th class="n">已到貨</th><th class="n">未到</th><th>本次到貨</th><th>出貨單對應</th></tr></thead><tbody id="recvBody"></tbody></table></div>
-  <div id="recvUnmatched"></div>
-  <div class="row" style="margin-top:10px"><span class="d" id="recvSum"></span><button class="btn p right" id="recvSave">登記到貨</button></div>
-  <details id="recvRaw" hidden><summary class="d">查看辨識出的原始文字</summary><pre id="recvRawText" class="rawtxt"></pre></details>
-</section>
+  <div class="tw"><table><thead><tr><th>叫料單</th><th>廠商・品名</th><th class="n">申請</th><th class="n">已到貨</th><th class="n">未到</th><th>本次到貨</th></tr></thead><tbody id="recvBody"></tbody></table></div>
+  <div class="row" style="margin-top:10px"><span class="d" id="recvSum"></span><button class="btn p right" id="recvSave">登記到貨</button></div></section>
 
 <section id="s-cons">
   <div class="chips" id="grpChips"></div>
@@ -1175,8 +1161,6 @@ function orderRState(o) {
 }
 const todayStr = () => localDate(new Date().toISOString());
 S.recvQ = {};      // key(no|id) → 本次到貨數量（字串）
-S.recvHit = {};    // key → { text, score }
-S.recvOcrLines = []; S.recvUnmatched = [];
 const rKey = (o, l) => o.no + '|' + l.id;
 function recvCandidates(includeDone) {
   const out = [];
@@ -1197,22 +1181,19 @@ function renderRecv() {
   $('#recvStat').innerHTML = (S.recvNo ? `只顯示叫料單 <b>${esc(S.recvNo)}</b> <a href="#" id="recvNoClear">顯示全部</a>・` : '') + `${list.length} 個項目` + (pending.length ? `（全專案尚有 ${pending.length} 項未到齊）` : '（全部已到齊）');
   let lastNo = null;
   $('#recvBody').innerHTML = list.map(c => {
-    const { o, l, key } = c, hit = S.recvHit[key], v = S.recvQ[key] != null ? S.recvQ[key] : '';
-    const head = o.no !== lastNo ? (lastNo = o.no, `<tr class="sec"><td colspan="7">${esc(o.no)}　${esc(localDate(o.ts))}　${esc(o.userName || '')}${o.needDate ? '　需用 ' + esc(o.needDate) : ''}</td></tr>`) : '';
-    const sc = hit ? (hit.score >= 0.75 ? 'hi' : hit.score >= 0.5 ? 'mid' : 'lo') : '';
+    const { o, l, key } = c, v = S.recvQ[key] != null ? S.recvQ[key] : '';
+    const head = o.no !== lastNo ? (lastNo = o.no, `<tr class="sec"><td colspan="6">${esc(o.no)}　${esc(localDate(o.ts))}　${esc(o.userName || '')}${o.needDate ? '　需用 ' + esc(o.needDate) : ''}</td></tr>`) : '';
     return head + `<tr class="${Number(v) ? 'rhit' : ''}"><td class="nw d">${esc(o.no)}</td><td class="nm">${esc(l.vendor)}｜${esc(l.name)}<div class="d">${esc(l.cno)}${l.slip ? '・出貨單 ' + esc(l.slip) : ''}${l.rdate ? '・最近到貨 ' + esc(l.rdate) : ''}</div></td>
 <td class="n">${fmt(l.qty)} ${esc(l.unit)}</td><td class="n">${fmt(recvOf(l))} ${rStateTag(l)}</td><td class="n">${fmt(c.remain)}</td>
-<td><input type="number" step="any" class="rq" data-rk="${esc(key)}" value="${esc(v)}" placeholder="0"> <button class="btn sm" data-rfull="${esc(key)}" title="填入未到數量">到齊</button></td>
-<td class="nm d">${hit ? `${esc(hit.text)}<span class="mtag ${sc}">${sc === 'hi' ? '高度相符' : sc === 'mid' ? '可能相符' : '請確認'}</span>` : ''}</td></tr>`;
-  }).join('') || `<tr><td colspan="7" class="muted">${S.orders.length ? '沒有未到貨的項目' : '尚無叫料紀錄'}</td></tr>`;
-  $('#recvUnmatched').innerHTML = S.recvUnmatched.length ? `<div class="note" style="margin-top:8px"><b>出貨單上有 ${S.recvUnmatched.length} 行沒有對應到叫料項目</b>（可能是單頭／合計，或品名差異太大，請手動在上表填入）：<br>${S.recvUnmatched.slice(0, 30).map(u => esc(u.text) + (u.qty != null ? `　<b>×${fmt(u.qty)}</b>` : '')).join('<br>')}</div>` : '';
+<td><input type="number" step="any" class="rq" data-rk="${esc(key)}" value="${esc(v)}" placeholder="0"> <button class="btn sm" data-rfull="${esc(key)}" title="填入未到數量">到齊</button></td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="muted">${S.orders.length ? '沒有未到貨的項目' : '尚無叫料紀錄'}</td></tr>`;
   recvSum();
   const n = new Set(recvCandidates(false).map(c => c.o.no)).size;
   $('#recvCnt').hidden = !n; $('#recvCnt').textContent = n;
 }
 function recvSum() {
   const ks = Object.keys(S.recvQ).filter(k => Number(S.recvQ[k]));
-  $('#recvSum').textContent = ks.length ? `本次將登記 ${ks.length} 個項目的到貨` : '在「本次到貨」輸入數量，或匯入出貨單自動帶入';
+  $('#recvSum').textContent = ks.length ? `本次將登記 ${ks.length} 個項目的到貨` : '在「本次到貨」輸入數量，或按「到齊」';
 }
 $('#recvBody').addEventListener('input', e => { const k = e.target.dataset.rk; if (!k) return; S.recvQ[k] = e.target.value; e.target.closest('tr').className = Number(e.target.value) ? 'rhit' : ''; recvSum(); });
 $('#recvBody').addEventListener('click', e => {
@@ -1223,7 +1204,7 @@ $('#recvStat').addEventListener('click', e => { if (e.target.id === 'recvNoClear
 $('#recvVendor').onchange = () => { S.recvVendor = $('#recvVendor').value; renderRecv(); };
 $('#recvAll').onchange = renderRecv;
 $('#recvFill').onclick = () => { recvCandidates(false).filter(c => (!S.recvVendor || c.l.vendor === S.recvVendor) && (!S.recvNo || c.o.no === S.recvNo)).forEach(c => { S.recvQ[c.key] = String(c.remain); }); renderRecv(); };
-$('#recvClear').onclick = () => { S.recvQ = {}; S.recvHit = {}; S.recvUnmatched = []; $('#recvOcr').textContent = ''; $('#recvRaw').hidden = true; renderRecv(); };
+$('#recvClear').onclick = () => { S.recvQ = {}; $('#recvOcr').textContent = ''; renderRecv(); };
 $('#recvSave').onclick = async () => {
   const cands = recvCandidates(true), byKey = {}; cands.forEach(c => byKey[c.key] = c);
   const ents = Object.keys(S.recvQ).filter(k => Number(S.recvQ[k]) && byKey[k]).map(k => ({ no: byKey[k].o.no, id: byKey[k].l.id, add: Number(S.recvQ[k]), c: byKey[k] }));
@@ -1244,172 +1225,11 @@ $('#recvSave').onclick = async () => {
       payload.entries.forEach(x => { const o = all.find(y => y.no === x.no), l = o && o.lines.find(y => y.id === x.id); if (l) { l.recv = (Number(l.recv) || 0) + x.add; l.rdate = payload.date; l.rby = S.user ? S.user.name : ''; if (payload.slip) l.slip = l.slip ? l.slip + '、' + payload.slip : payload.slip; } });
       store.set(localKey(), all);
     }
-    S.recvQ = {}; S.recvHit = {}; S.recvUnmatched = []; $('#recvSlip').value = ''; $('#recvOcr').innerHTML = `<span style="color:var(--bestink)">✔ 已登記 ${ents.length} 個項目的到貨。</span>`; $('#recvRaw').hidden = true;
+    S.recvQ = {}; $('#recvSlip').value = ''; $('#recvOcr').innerHTML = `<span style="color:var(--bestink)">✔ 已登記 ${ents.length} 個項目的到貨。</span>`;
     await refreshOrders();
   } catch (e) { alert('登記失敗：' + e.message); }
   $('#recvSave').disabled = false;
 };
-
-/* ---- 讀取出貨單：PDF 文字層（pdf.js）＋ 照片／掃描檔 OCR（Tesseract.js，繁中＋英數） ---- */
-const LIB = { pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', pdfWorker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js', ocr: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js' };
-const loadJs = src => new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('無法載入辨識元件，請確認網路連線')); document.head.appendChild(s); });
-const ocrMsg = h => { $('#recvOcr').innerHTML = h; };
-let ocrWorker = null;
-async function getOcr() {
-  if (ocrWorker) return ocrWorker;
-  await loadJs(LIB.ocr);
-  ocrMsg('⏳ 第一次使用：正在下載中文辨識字庫（約 15MB，之後會快很多）…');
-  ocrWorker = await Tesseract.createWorker('chi_tra+eng', 1, { logger: m => { if (m.status === 'recognizing text') ocrMsg(`⏳ 辨識中… ${Math.round((m.progress || 0) * 100)}%`); } });
-  await ocrWorker.setParameters({ preserve_interword_spaces: '1' });
-  return ocrWorker;
-}
-// 照片／掃描檔：①先找出拍攝傾斜角度 ②轉正、黑白化、擦掉表格框線 ③逐列辨識（數量與品名在同一列）
-async function ocrCanvas(src) {
-  const w = await getOcr();
-  await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' });
-  const r1 = await w.recognize(src, {}, { text: true, blocks: true });
-  const angs = (r1.data.lines || []).filter(l => l.baseline && l.baseline.x1 - l.baseline.x0 > 120).map(l => Math.atan2(l.baseline.y1 - l.baseline.y0, l.baseline.x1 - l.baseline.x0)).sort((a, b) => a - b);
-  let ang = angs.length ? angs[Math.floor(angs.length / 2)] : 0; if (Math.abs(ang) > 0.2) ang = 0;
-  const W = src.width, H = src.height, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-  g.translate(W / 2, H / 2); g.rotate(-ang); g.translate(-W / 2, -H / 2); g.drawImage(src, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
-  const d = g.getImageData(0, 0, W, H), p = d.data, n = W * H, gray = new Uint8Array(n), hist = new Array(256).fill(0);
-  for (let i = 0, j = 0; j < n; i += 4, j++) { const y = (p[i] * 0.299 + p[i + 1] * 0.587 + p[i + 2] * 0.114) | 0; gray[j] = y; hist[y]++; }
-  let thr = 128, sum = 0, sB = 0, wB = 0, best = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
-  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += t * hist[t]; const v = wB * wF * (sB / wB - (sum - sB) / wF) ** 2; if (v > best) { best = v; thr = t; } }
-  const dark = new Uint8Array(n); for (let j = 0; j < n; j++) dark[j] = gray[j] < thr ? 1 : 0;
-  const kill = new Uint8Array(n), HL = Math.max(80, W * 0.05), VL = Math.max(60, H * 0.04);
-  for (let y = 0; y < H; y++) { let run = 0; for (let x = 0; x <= W; x++) { if (x < W && dark[y * W + x]) run++; else { if (run >= HL) for (let k = x - run; k < x; k++) for (let dy = -2; dy <= 2; dy++) { const yy = y + dy; if (yy >= 0 && yy < H) kill[yy * W + k] = 1; } run = 0; } } }
-  for (let x = 0; x < W; x++) { let run = 0; for (let y = 0; y <= H; y++) { if (y < H && dark[y * W + x]) run++; else { if (run >= VL) for (let k = y - run; k < y; k++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx; if (xx >= 0 && xx < W) kill[k * W + xx] = 1; } run = 0; } } }
-  for (let j = 0, i = 0; j < n; j++, i += 4) { const v = dark[j] && !kill[j] ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; p[i + 3] = 255; }
-  g.putImageData(d, 0, 0);
-  await w.setParameters({ tessedit_pageseg_mode: '4' });
-  const r2 = await w.recognize(cv);
-  await w.setParameters({ tessedit_pageseg_mode: '3' });
-  return (r2.data.text || '').split(/\n/);
-}
-async function imageToCanvas(file) {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('無法開啟圖片：' + file.name)); i.src = url; });
-    const k = Math.min(3, Math.max(1, 2400 / Math.max(img.width, img.height)));   // 放大到約 2400px 再辨識
-    const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-    const g = cv.getContext('2d'); g.filter = 'grayscale(1) contrast(1.3)'; g.drawImage(img, 0, 0, cv.width, cv.height);
-    return cv;
-  } finally { URL.revokeObjectURL(url); }
-}
-async function readPdf(file) {
-  await loadJs(LIB.pdf); pdfjsLib.GlobalWorkerOptions.workerSrc = LIB.pdfWorker;
-  const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise, lines = [];
-  for (let p = 1; p <= doc.numPages; p++) {
-    const page = await doc.getPage(p), tc = await page.getTextContent();
-    const items = tc.items.filter(i => i.str && i.str.trim());
-    if (items.map(i => i.str).join('').replace(/\s/g, '').length >= 20) {
-      // 有文字層：依 y 座標分行、x 排序
-      const rows = []; items.forEach(i => { const y = i.transform[5], x = i.transform[4]; let r = rows.find(r => Math.abs(r.y - y) < 3.5); if (!r) rows.push(r = { y, cells: [] }); r.cells.push({ x, s: i.str }); });
-      rows.sort((a, b) => b.y - a.y).forEach(r => lines.push(r.cells.sort((a, b) => a.x - b.x).map(c => c.s).join(' ')));
-    } else {
-      // 掃描檔：轉成圖片再 OCR
-      ocrMsg(`⏳ ${esc(file.name)} 第 ${p} 頁是掃描影像，改用 OCR 辨識…`);
-      const vp = page.getViewport({ scale: 2.2 }), cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
-      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-      (await ocrCanvas(cv)).forEach(t => lines.push(t));
-    }
-  }
-  return lines;
-}
-async function readSlipFiles(files) {
-  const all = [];
-  for (const f of files) {
-    ocrMsg(`⏳ 讀取 ${esc(f.name)}…`);
-    if (/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name)) (await readPdf(f)).forEach(t => all.push(t));
-    else if (/^image\//.test(f.type)) (await ocrCanvas(await imageToCanvas(f))).forEach(t => all.push(t));
-  }
-  return all.map(t => t.replace(/\s+/g, ' ').trim()).filter(Boolean);
-}
-
-/* ---- 解析與比對 ---- */
-const half = s => String(s || '').normalize('NFKC').replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ').replace(/[×＊*]/g, 'X').replace(/[”″“]/g, '"');
-const normTxt = s => half(s).toUpperCase().replace(/(?<=[一-鿿])\s+(?=[一-鿿])/g, '').replace(/[\s,，。、:：;；()（）\[\]【】\-_/\\|]+/g, '');
-const UNIT = '個|只|支|M|米|公尺|組|台|臺|盞|式|PCS|EA|套|箱|捲|卷|條|片|顆|包|桶|KG|件|個/只|ST|SET|R';
-const SKIP = /品名|品\s*名|規格|數量|單價|金額|合計|總計|小計|稅額|營業稅|電話|傳真|地址|統一編號|統編|客戶|客\s*戶|簽收|送貨人|收貨人|頁次|備註欄|TEL|FAX|出\s*貨\s*單|送\s*貨\s*單|銷\s*貨\s*單|有限公司|日\s*期|單\s*號/i;
-function parseSlipLine(raw) {
-  const t = half(raw).trim(); if (!t || SKIP.test(t)) return null;
-  const re = /(?<![A-Za-z0-9.\-\/X"])(\d{1,3}(?:[.,]\d{3})+|\d+(?:\.\d+)?)(?![\dA-Za-z]|[\d.]*(?:X|\/|"|MM|M2|A\b|W\b|V\b|HP|KW|SQ))/gi;
-  const nums = []; let m; while ((m = re.exec(t))) nums.push({ v: Number(m[1]), i: m.index, len: m[0].length, s: m[1] });
-  let qty = null;
-  const uq = new RegExp(`(?:^|\\s)(${UNIT})\\s+(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?)\\s*(${UNIT})(?:\\s|$)`, 'i').exec(t);
-  // 金額類數字（含千分位 15,600 或 OCR 誤讀成 10.500）
-  const val = s => /^\d{1,3}([.,]\d{3})+$/.test(s) ? Number(s.replace(/[.,]/g, '')) : Number(s);
-  const body = nums.filter(n => !(n.i <= 1 && nums.length > 1));                 // 列首的項次 1、2、3 不是數量
-  for (let k = 0; k + 2 < body.length && qty == null; k++) {                      // 找「數量 × 單價 ≈ 金額」
-    const q = val(body[k].s), u = val(body[k + 1].s), a = val(body[k + 2].s);
-    if (q > 0 && u > 0 && a > 0 && Math.abs(q * u - a) <= Math.max(2, a * 0.02)) qty = q;
-  }
-  if (qty == null && uq) qty = Number(uq[2] || uq[3]);
-  if (qty == null) { const ints = body.filter(n => !/[,]/.test(n.s) && n.v > 0 && n.v < 100000); if (ints.length) qty = ints.length >= 3 ? ints[ints.length - 3].v : ints[0].v; }
-  let item = t; nums.slice().reverse().forEach(n => { item = item.slice(0, n.i) + ' ' + item.slice(n.i + n.len); });
-  item = item.replace(new RegExp(`(^|\\s)(${UNIT})(?=\\s|$)`, 'gi'), ' ').replace(/^\s*\d+[.、)]?\s*/, '').replace(/\s+/g, ' ').trim();
-  if (normTxt(item).replace(/[^一-鿿A-Z0-9]/g, '').length < 2) return null;
-  return { text: raw.trim(), item, qty };
-}
-const bigrams = s => { const a = []; for (let i = 0; i < s.length - 1; i++) a.push(s.slice(i, i + 2)); return a.length ? a : [s]; };
-function dice(a, b) { const A = bigrams(a), B = bigrams(b), m = {}; A.forEach(x => m[x] = (m[x] || 0) + 1); let hit = 0; B.forEach(x => { if (m[x]) { hit++; m[x]--; } }); return 2 * hit / (A.length + B.length); }
-const ocrFix = s => s.replace(/[OQD]/g, '0').replace(/[IL|]/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/Z/g, '2').replace(/G/g, '6');
-const specTokens = s => (half(s).toUpperCase().match(/[A-Z0-9][A-Z0-9.\-\/X"]*\d[A-Z0-9.\-\/X"]*/g) || []).map(x => ocrFix(x.replace(/[.\-]$/, '')));
-function scoreLine(p, l) {
-  const it = S.byId[l.id] || {}, full = l.name + ' ' + (it.spec || '') + ' ' + (it.note || '') + ' ' + (l.memo || '');
-  const a = normTxt(p.item), b = normTxt(full);
-  let s = dice(a, b);
-  const ta = specTokens(p.item), tb = specTokens(full);
-  ta.forEach(x => { if (tb.includes(x)) s += 0.3; else if (tb.some(y => y.includes(x) || x.includes(y)) && x.length >= 3) s += 0.12; });
-  if (a.length >= 4 && (b.includes(a) || a.includes(b))) s += 0.2;
-  return Math.min(1.5, s);
-}
-function matchSlip(lines) {
-  const parsed = lines.map(parseSlipLine).filter(Boolean);
-  // 廠商：出貨單內容出現的廠商名稱
-  const full = normTxt(lines.join(' ')), vendors = [...new Set(recvCandidates(false).map(c => c.l.vendor))];
-  const found = vendors.filter(v => full.includes(normTxt(v)));
-  if (found.length === 1 && !S.recvVendor) S.recvVendor = found[0];
-  const slipNo = /(?:出貨單號|送貨單號|銷貨單號|單據號碼|單號|NO\.?)\s*[:：]?\s*([A-Z0-9][A-Z0-9\-]{3,})/i.exec(half(lines.join(' ')));
-  if (slipNo && !$('#recvSlip').value) $('#recvSlip').value = slipNo[1];
-  const pool = recvCandidates(false).filter(c => !S.recvVendor || c.l.vendor === S.recvVendor);
-  const left = {}; pool.forEach(c => left[c.key] = c.remain - (Number(S.recvQ[c.key]) || 0));
-  S.recvUnmatched = []; let hits = 0;
-  parsed.forEach(p => {
-    // 以品項 ID 分組取最高分；同一品項在多張叫料單未到時，先補最早的單
-    let best = null; pool.forEach(c => { const s = scoreLine(p, c.l); if (!best || s > best.s) best = { s, id: c.l.id }; });
-    if (!best || best.s < 0.36) { S.recvUnmatched.push(p); return; }
-    const same = pool.filter(c => c.l.id === best.id);
-    let q = p.qty != null ? p.qty : same.reduce((x, c) => x + Math.max(0, left[c.key]), 0);
-    same.forEach((c, i) => {
-      if (q <= 0) return;
-      const take = i === same.length - 1 ? q : Math.min(q, Math.max(0, left[c.key]));
-      if (take <= 0) return;
-      S.recvQ[c.key] = String(Math.round(((Number(S.recvQ[c.key]) || 0) + take) * 1000) / 1000); left[c.key] -= take; q -= take;
-      S.recvHit[c.key] = { text: p.text, score: best.s }; hits++;
-    });
-  });
-  return { parsed: parsed.length, hits, vendor: found.length === 1 ? found[0] : '' };
-}
-async function importSlips(files) {
-  if (!files || !files.length) return;
-  $('#recvFile').disabled = true;
-  try {
-    const lines = await readSlipFiles([...files]);
-    $('#recvRawText').textContent = lines.join('\n'); $('#recvRaw').hidden = !lines.length;
-    if (!lines.length) { ocrMsg('<span style="color:var(--bad)">讀不到文字，請改用較清楚的照片（正面、光線充足、不要反光）。</span>'); return; }
-    const r = matchSlip(lines);
-    renderRecv();
-    ocrMsg(`✔ 讀取完成：辨識出 ${r.parsed} 行品項，自動對應 ${r.hits} 個叫料項目${r.vendor ? `（廠商：${esc(r.vendor)}）` : ''}。<b>請核對下方「本次到貨」數量</b>，確認無誤再按「登記到貨」。`);
-  } catch (e) { ocrMsg(`<span style="color:var(--bad)">讀取失敗：${esc(e.message)}</span>`); }
-  $('#recvFile').disabled = false; $('#recvFile').value = '';
-}
-$('#recvFile').onchange = e => importSlips(e.target.files);
-['dragenter', 'dragover'].forEach(ev => $('#recvDrop').addEventListener(ev, e => { e.preventDefault(); $('#recvDrop').classList.add('drag'); }));
-['dragleave', 'drop'].forEach(ev => $('#recvDrop').addEventListener(ev, e => { e.preventDefault(); $('#recvDrop').classList.remove('drag'); }));
-$('#recvDrop').addEventListener('drop', e => importSlips(e.dataTransfer.files));
 
 /* ---------- help / settings ---------- */
 function renderHelp() {
